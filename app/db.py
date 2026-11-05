@@ -181,9 +181,11 @@ class CosmosRepo:
                                                 parameters=[{"name": "@v", "value": vid}], partition_key=vid))
 
     def comment_counts(self):
-        rows = self.comments_c.query_items("SELECT c.video_id, COUNT(1) AS n FROM c GROUP BY c.video_id",
-                                           enable_cross_partition_query=True)
-        return {r["video_id"]: r["n"] for r in rows}
+        # The Python SDK can't run GROUP BY across partitions, so count client-side
+        counts = {}
+        for r in self.comments_c.query_items("SELECT c.video_id FROM c", enable_cross_partition_query=True):
+            counts[r["video_id"]] = counts.get(r["video_id"], 0) + 1
+        return counts
 
 
 def get_repo(app_root):
