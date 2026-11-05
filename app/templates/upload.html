@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Upload · ClipStream{% endblock %}
+{% block content %}
+<form class="panel" method="post" enctype="multipart/form-data">
+  <h2>Upload a video</h2>
+  <label class="drop">Video file (.mp4, .webm, .mov)<input name="video" type="file" accept="video/*" required></label>
+  <label>Caption <input name="caption" maxlength="300" placeholder="What's happening?"></label>
+  <label>Hashtags <input name="tags" placeholder="travel food funny"></label>
+  <button class="btn wide">Post video</button>
+  <p class="small">Files go straight to {{ store_kind }}; details are saved in {{ db_kind }}.</p>
+</form>
+{% endblock %}

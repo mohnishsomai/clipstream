@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>Short videos, shared instantly.</h1>
+  <p>Upload a clip, get likes, comments and shares. Built cloud-native on Azure.</p>
+</section>
+{% if not videos %}<p class="empty">No videos yet. {% if me %}<a href="{{ url_for('upload') }}">Upload the first one</a>{% else %}<a href="{{ url_for('register') }}">Sign up</a> to post the first one{% endif %}.</p>{% endif %}
+<div class="feed">
+  {% for v in videos %}
+  <article class="card">
+    <a href="{{ url_for('video', vid=v.id) }}"><video src="{{ v.url }}" muted loop playsinline preload="metadata" onmouseover="this.play()" onmouseout="this.pause()"></video></a>
+    <div class="meta">
+      <div class="user">@{{ v.username }}</div>
+      <div class="cap">{{ v.caption }}</div>
+      {% if v.tags %}<div class="tags">{% for t in v.tags.split() %}<span>#{{ t.lstrip('#') }}</span>{% endfor %}</div>{% endif %}
+      <div class="actions">
+        <button class="act" onclick="like('{{ v.id }}', this)">♥ <b>{{ v.likes }}</b></button>
+        <a class="act" href="{{ url_for('video', vid=v.id) }}#comments">💬 <b>{{ v.comments }}</b></a>
+        <button class="act" onclick="share('{{ v.id }}', this)">↗ <b>{{ v.shares }}</b></button>
+        <span class="views">{{ v.views }} views</span>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

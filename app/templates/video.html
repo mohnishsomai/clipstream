@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ v.caption or 'Video' }} · ClipStream{% endblock %}
+{% block content %}
+<div class="watch">
+  <video src="{{ v.url }}" controls autoplay muted loop playsinline></video>
+  <aside>
+    <div class="user">@{{ v.username }}</div>
+    <p class="cap">{{ v.caption }}</p>
+    {% if v.tags %}<div class="tags">{% for t in v.tags.split() %}<span>#{{ t.lstrip('#') }}</span>{% endfor %}</div>{% endif %}
+    <div class="actions">
+      <button class="act" onclick="like('{{ v.id }}', this)">♥ <b>{{ v.likes }}</b></button>
+      <button class="act" onclick="share('{{ v.id }}', this)">↗ <b>{{ v.shares }}</b></button>
+      <span class="views">{{ v.views }} views</span>
+    </div>
+    <h3 id="comments">Comments ({{ comments|length }})</h3>
+    <ul class="comments">
+      {% for c in comments %}
+      <li><b>@{{ c.username }}</b> {{ c.text }} <span class="sent {{ c.sentiment }}">{{ c.sentiment }}</span></li>
+      {% else %}<li class="small">No comments yet.</li>{% endfor %}
+    </ul>
+    {% if me %}
+    <form method="post" action="{{ url_for('comment', vid=v.id) }}" class="cform">
+      <input name="text" placeholder="Add a comment…" required maxlength="500"><button class="btn">Post</button>
+    </form>
+    {% else %}<p class="small"><a href="{{ url_for('login') }}">Log in</a> to comment.</p>{% endif %}
+  </aside>
+</div>
+{% endblock %}

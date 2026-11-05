@@ -1,0 +1,19 @@
+# Local multi-container run: 3 app replicas behind an nginx load balancer.
+# docker compose up --build --scale web=3
+services:
+  web:
+    build: .
+    environment:
+      - SECRET_KEY=local-dev-secret
+      - SQLITE_PATH=/data/clipstream.db
+      - MEDIA_DIR=/data/media
+    volumes:
+      - data:/data
+  lb:
+    image: nginx:alpine
+    ports: ["8080:80"]
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [web]
+volumes:
+  data:

@@ -1,0 +1,63 @@
+# CI/CD: every push to main is tested, containerised with Docker, pushed to
+# Azure Container Registry and deployed as a new Azure Container Apps revision.
+name: ClipStream CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE: clipstream
+
+permissions:
+  id-token: write   # OIDC: GitHub proves its identity to Azure, no stored password
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+
+  build-and-deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push Docker image to Azure Container Registry
+        run: |
+          az acr login --name ${{ vars.ACR_NAME }}
+          REG=${{ vars.ACR_NAME }}.azurecr.io
+          docker build -t $REG/$IMAGE:${{ github.sha }} -t $REG/$IMAGE:latest .
+          docker push --all-tags $REG/$IMAGE
+
+      - name: Deploy new revision to Azure Container Apps
+        run: |
+          az extension add -n containerapp --upgrade -y
+          az containerapp update \
+            --name ${{ vars.APP_NAME }} \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --image ${{ vars.ACR_NAME }}.azurecr.io/$IMAGE:${{ github.sha }}
+
+      - name: Smoke test
+        run: |
+          URL=$(az containerapp show -n ${{ vars.APP_NAME }} -g ${{ vars.RESOURCE_GROUP }} \
+                --query properties.configuration.ingress.fqdn -o tsv)
+          sleep 30
+          curl -fsS https://$URL/healthz

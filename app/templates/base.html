@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ClipStream{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="{{ url_for('home') }}"><span>▶</span> ClipStream</a>
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      {% if me %}
+        <a class="btn" href="{{ url_for('upload') }}">＋ Upload</a>
+        <span class="who">@{{ me }}</span>
+        <a href="{{ url_for('logout') }}">Log out</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Log in</a>
+        <a class="btn" href="{{ url_for('register') }}">Sign up</a>
+      {% endif %}
+    </nav>
+  </header>
+  <main>
+    {% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>Served by <code>{{ host }}</code> · DB: {{ db_kind }} · Media: {{ store_kind }}</footer>
+  <script>
+  async function like(id, btn){
+    const r = await fetch('/api/videos/'+id+'/like', {method:'POST'});
+    if (r.redirected || r.status===401){ location='/login'; return; }
+    const j = await r.json(); btn.classList.toggle('on', j.liked); btn.querySelector('b').textContent=j.likes;
+  }
+  async function share(id, btn){
+    const j = await (await fetch('/api/videos/'+id+'/share', {method:'POST'})).json();
+    try { await navigator.clipboard.writeText(j.url); } catch(e){}
+    btn.querySelector('b').textContent = (+btn.querySelector('b').textContent)+1;
+    btn.dataset.tip='Link copied!'; setTimeout(()=>btn.dataset.tip='',1500);
+  }
+  </script>
+</body>
+</html>
